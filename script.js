@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 3. Auto Redirect to Index
             setTimeout(() => {
-                window.location.href = 'index.html';
+                window.location.href = 'testimoni.html';
             }, 3000);
         });
     }
