@@ -1,4 +1,160 @@
+// ---------------------------------------------------------
+// FIREBASE CONFIGURATION & INITIALIZATION
+// ---------------------------------------------------------
+// TODO: Replace with your actual Firebase project config
+const firebaseConfig = {
+    apiKey: "AIzaSyCiN8dKgWs2swvOlGCNZMHhC8jshGF1O2M",
+    authDomain: "sheetworks-2ca89.firebaseapp.com",
+    projectId: "sheetworks-2ca89",
+    storageBucket: "sheetworks-2ca89.firebasestorage.app",
+    messagingSenderId: "199974847465",
+    appId: "1:199974847465:web:8c522c4c50fe3bb186c178"
+};
+
+// Initialize Firebase
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+// ---------------------------------------------------------
+// CONSTANTS & STATE
+// ---------------------------------------------------------
+// Admin Emails (Role Management)
+const ADMIN_EMAILS = ['bintang088213224163@gmail.com']; // Ganti dengan email admin sebenarnya
+
+// ---------------------------------------------------------
+// AUTHENTICATION LOGIC
+// ---------------------------------------------------------
+
+/**
+ * Trigger Google Login Popup
+ */
+function loginGoogle() {
+    if (typeof firebase === 'undefined') {
+        alert("Firebase SDK belum dimuat. Cek koneksi internet atau konfigurasi.");
+        return;
+    }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+            // Login Success
+            const user = result.user;
+            console.log("User logged in:", user.displayName);
+            toggleLoginModal(); // Close modal
+        })
+        .catch((error) => {
+            console.error("Login Error:", error);
+            alert("Gagal login: " + error.message);
+        });
+}
+
+/**
+ * Logout User
+ */
+function logout() {
+    if (confirm("Ingin keluar dari akun?")) {
+        firebase.auth().signOut().then(() => {
+            console.log("User signed out");
+            // Clear specific session data if needed
+            sessionStorage.removeItem('userProfile');
+            location.reload(); // Refresh to reset UI
+        }).catch((error) => {
+            console.error("Logout Error:", error);
+        });
+    }
+}
+
+/**
+ * Toggle Login Modal Visibility
+ */
+function toggleLoginModal() {
+    const modal = document.getElementById('login-modal');
+    if (modal) {
+        modal.classList.toggle('active');
+    }
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
+
+    // ---------------------------------------------------------
+    // AUTH STATE LISTENER (Runs on all pages)
+    // ---------------------------------------------------------
+    if (typeof firebase !== 'undefined') {
+        firebase.auth().onAuthStateChanged((user) => {
+            const authContainer = document.getElementById('auth-container');
+            const testimonialGrid = document.getElementById('testimonial-grid');
+
+            if (user) {
+                // USER IS LOGGED IN
+
+                // 1. Update Auth UI (Header)
+                if (authContainer) {
+                    authContainer.innerHTML = `
+                        <div class="user-profile-display" onclick="logout()" title="Klik untuk Logout">
+                            <img src="${user.photoURL}" alt="User">
+                            <span>${user.displayName.split(' ')[0]}</span>
+                            <button class="logout-btn">🚪</button>
+                        </div>
+                    `;
+                }
+
+                // 2. Save Profile for Review Page
+                const userProfile = {
+                    name: user.displayName,
+                    photo: user.photoURL,
+                    email: user.email,
+                    isAdmin: ADMIN_EMAILS.includes(user.email)
+                };
+                sessionStorage.setItem('userProfile', JSON.stringify(userProfile));
+
+                // 3. Admin: Show Delete Buttons (If on badminton.html)
+                if (testimonialGrid && userProfile.isAdmin) {
+                    document.querySelectorAll('.delete-review-btn').forEach(btn => {
+                        btn.style.display = 'block';
+                    });
+                }
+
+                // 4. Review Page Logic (Auto-Fill)
+                const reviewForm = document.getElementById('review-page-form');
+                if (reviewForm) {
+                    const nameInput = document.getElementById('review-name');
+                    if (nameInput) nameInput.value = user.displayName;
+                    // Optional: You could show the user photo somewhere on the form
+                }
+
+            } else {
+                // USER IS LOGGED OUT
+
+                // 1. Reset Auth UI
+                if (authContainer) {
+                    authContainer.innerHTML = `
+                        <button onclick="toggleLoginModal()" class="btn-login">
+                            🔒 Login Member
+                        </button>
+                    `;
+                }
+
+                // 2. Clear Session
+                sessionStorage.removeItem('userProfile');
+
+                // 3. Hide Admin Controls
+                if (testimonialGrid) {
+                    document.querySelectorAll('.delete-review-btn').forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                }
+
+                // 4. Protected Route Check (review.html)
+                if (window.location.pathname.includes('review.html')) {
+                    alert("Anda harus login untuk menulis review!");
+                    window.location.href = 'badminton.html';
+                }
+            }
+        });
+    }
+
+
     // ---------------------------------------------------------
     // Common: FAQ Accordion (Runs on pages with .faq-question)
     // ---------------------------------------------------------
@@ -41,8 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // === Logic for REVIEW.HTML ===
     if (reviewForm) {
         const ratingInput = document.getElementById('review-rating');
-        const starContainer = document.getElementById('star-container');
-        const stars = starContainer.querySelectorAll('.star-rating');
+        // Selectors matched to review.html: id="star-group" and class="star"
+        const starContainer = document.getElementById('star-group');
+        const stars = starContainer ? starContainer.querySelectorAll('.star') : [];
 
         // Star Rating Click Logic
         stars.forEach(star => {
@@ -61,7 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const club = document.getElementById('review-club').value || "Pengguna Baru";
             const rating = ratingInput.value;
             const message = document.getElementById('review-message').value;
-            const helpful = document.getElementById('review-helpful').value;
+            // 'helpful' field might not exist in the basic HTML? Check review.html content.
+            // HTML has: review-name, review-club, review-rating, review-message.
+            // NO review-helpful input in HTML Step 12.
 
             // 1. Save to LocalStorage
             const newReview = {
@@ -69,7 +228,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 club,
                 rating,
                 message,
-                helpful,
                 date: new Date().toISOString()
             };
 
@@ -78,10 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('badmintonReviews', JSON.stringify(existingReviews));
 
             // 2. WhatsApp Persistence (Optional)
-            let waMessage = `Halo Admin, review baru via web:%0A%0ANama: ${name}%0AKlub: ${club}%0ARating: ${rating} Bintang%0APesan: ${message}`;
-            if (helpful) {
-                waMessage += `%0AHal Paling Membantu: ${helpful}`;
-            }
+            const waMessage = `Halo Admin, review baru via web:%0A%0ANama: ${name}%0AKlub: ${club}%0ARating: ${rating} Bintang%0APesan: ${message}`;
             const waUrl = `https://wa.me/?text=${waMessage}`;
 
             if (confirm("Review Tersimpan! Kirim juga ke WhatsApp Admin?")) {
@@ -102,6 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'testimonial-card';
             card.style.position = 'relative'; // For absolute positioning of delete button
+
+            // Check current user for Admin immediately? 
+            // Better to rely on the Auth Listener to unhide buttons, OR start hidden.
+            // I'll add them with display:none;
+
             card.innerHTML = `
                 <div class="stars">${'⭐'.repeat(review.rating)}</div>
                 <p class="quote">"${review.message}"</p>
@@ -115,8 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <small>${review.club}</small>
                     </div>
                 </div>
-                <!-- Delete Button (Only for LocalStorage reviews) -->
-                <button class="delete-review-btn" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#ff4757; cursor:pointer;" title="Hapus Review Ini">🗑️</button>
+                <!-- Delete Button (Initially Hidden) -->
+                <button class="delete-review-btn" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#ff4757; cursor:pointer; display:none;" title="Hapus Review Ini">🗑️</button>
             `;
 
             // Delete Logic
@@ -127,7 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Remove from LocalStorage
                     const currentReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-                    const updatedReviews = currentReviews.filter(r => r.date !== review.date); // Filter by unique date
+                    // Note: This simple filter might delete duplicates if date isn't unique enough or missing.
+                    // The previous code used review.date.
+                    const updatedReviews = currentReviews.filter(r => r.date !== review.date);
                     localStorage.setItem('badmintonReviews', JSON.stringify(updatedReviews));
                 }
             });
@@ -136,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Helper: Update Star Visuals
+    // Helper: Update Star Visuals (Used if we move logic here)
     function updateStars(starsNodeList, value) {
         starsNodeList.forEach(star => {
             if (parseInt(star.getAttribute('data-value')) <= parseInt(value)) {
@@ -148,3 +310,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+

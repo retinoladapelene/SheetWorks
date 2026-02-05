@@ -508,3 +508,143 @@ footer {
         color: var(--primary-blue);
     }
 }
+
+/* =========================================
+   LOGIN & USER UI (ADDED)
+   ========================================= */
+.login-btn-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.btn-login {
+    background-color: var(--primary-blue);
+    color: var(--neon-yellow);
+    border: 2px solid var(--neon-yellow);
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-login:hover {
+    background-color: var(--neon-yellow);
+    color: var(--primary-blue);
+    box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
+}
+
+.user-profile-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    background: rgba(10, 25, 47, 0.8);
+    padding: 5px 15px;
+    border-radius: 20px;
+    border: 1px solid var(--neon-yellow);
+    cursor: pointer;
+}
+
+.user-profile-display img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--neon-yellow);
+}
+
+/* Logout Dropdown/Button */
+.logout-btn {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: 10px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.modal-card {
+    background: var(--primary-blue);
+    padding: 40px;
+    border-radius: 15px;
+    border: 1px solid var(--neon-yellow);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 0 30px rgba(204, 255, 0, 0.15);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-card {
+    transform: translateY(0);
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-white);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background: white;
+    color: #333;
+    width: 100%;
+    padding: 12px;
+    border-radius: 50px;
+    border: none;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.2s;
+}
+
+.google-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.google-icon {
+    width: 24px;
+    height: 24px;
+}

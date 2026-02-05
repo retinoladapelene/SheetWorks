@@ -282,11 +282,20 @@
         <p>&copy; 2026 PB ROXY Digital System. Dibuat untuk komunitas yang lebih transparan.</p>
     </footer>
 
+    <!-- Firebase SDKs -->
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <!-- Shared Logic (Auth & Submission) -->
+    <script src="script.js"></script>
+
     <script>
+        // UI ONLY LOGIC (Hover effects, feedback)
+        // Submission and Auth are handled in script.js
+
         const stars = document.querySelectorAll('.star');
         const ratingInput = document.getElementById('review-rating');
         const ratingDesc = document.getElementById('rating-desc');
-        const form = document.getElementById('review-page-form');
         const fileInput = document.getElementById('file-input');
         const fileNameDisp = document.getElementById('file-name');
 
@@ -298,18 +307,9 @@
             5: "Luar Biasa, Recommended! 🔥"
         };
 
-        // Star Interactivity
+        // Star Visual Interactivity (Hover effects)
         stars.forEach(star => {
-            star.addEventListener('click', function () {
-                const val = this.getAttribute('data-value');
-                ratingInput.value = val;
-
-                // Update visually
-                stars.forEach(s => s.classList.remove('selected'));
-                this.classList.add('selected');
-
-                ratingDesc.innerText = labels[val];
-            });
+            // Click is handled in script.js (syncing with value)
 
             star.addEventListener('mouseover', function () {
                 const val = this.getAttribute('data-value');
@@ -323,56 +323,14 @@
         });
 
         // File Input Feedback
-        fileInput.addEventListener('change', function () {
-            if (this.files.length > 0) {
-                fileNameDisp.innerText = "✅ " + this.files[0].name;
-                fileNameDisp.style.color = "var(--neon-yellow)";
-            }
-        });
-
-        // Form Submission
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            if (ratingInput.value == "0") {
-                alert("Harap berikan rating bintang terlebih dahulu.");
-                return;
-            }
-
-            const btn = document.getElementById('submit-btn');
-            btn.innerText = "Sedang Mengirim...";
-            btn.disabled = true;
-
-            // Save to LocalStorage
-            const name = document.getElementById('review-name').value;
-            const club = document.getElementById('review-club').value || "Pengguna Baru";
-            const rating = ratingInput.value;
-            const message = document.getElementById('review-message').value;
-
-            const newReview = {
-                name,
-                club,
-                rating,
-                message,
-                date: new Date().toISOString()
-            };
-
-            const existingReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-            existingReviews.unshift(newReview);
-            localStorage.setItem('badmintonReviews', JSON.stringify(existingReviews));
-
-            // Simulasi Proses Kirim & Redirect
-            setTimeout(() => {
-                document.getElementById('form-content').style.display = 'none';
-                document.getElementById('success-msg').style.display = 'block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                // Auto redirect after showing success for a moment
-                setTimeout(() => {
-                    window.location.href = 'badminton.html';
-                }, 2000);
-            }, 1000);
-        });
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                if (this.files.length > 0) {
+                    fileNameDisp.innerText = "✅ " + this.files[0].name;
+                    fileNameDisp.style.color = "var(--neon-yellow)";
+                }
+            });
+        }
     </script>
 </body>
 
