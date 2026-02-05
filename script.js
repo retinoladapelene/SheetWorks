@@ -90,19 +90,226 @@ function toggleLoginModal() {
 
 /**
  * Handle "Write Review" Click
- * Checks if user is logged in before navigating
+ * Checks if user is logged in before showing form
  */
 function handleWriteReviewClick(e) {
     e.preventDefault();
     const user = firebase.auth().currentUser;
     if (user) {
-        // Logged in: Go to review page
-        window.location.href = 'review.html';
+        // Logged in: Show form on Index page
+        const formContainer = document.getElementById('form-card');
+        if (formContainer) {
+            formContainer.style.display = 'block';
+            formContainer.scrollIntoView({ behavior: 'smooth' });
+        }
     } else {
         // Not logged in: Show login modal
         toggleLoginModal();
     }
 }
+
+function closeReviewForm() {
+    const formContainer = document.getElementById('form-card');
+    if (formContainer) formContainer.style.display = 'none';
+}
+
+// ---------------------------------------------------------
+// PRODUCT MANAGEMENT SYSTEM (ADMIN)
+// ---------------------------------------------------------
+
+// Default Data (Seed)
+const DEFAULT_CATEGORIES = [
+    { id: 'cat_1', name: 'Template Spreadsheet' },
+    { id: 'cat_2', name: 'E-Book Panduan' }
+];
+
+const DEFAULT_PRODUCTS = [
+    {
+        id: 'prod_1',
+        catId: 'cat_1',
+        name: 'Badminton Pro V3',
+        desc: 'Template lengkap untuk manajemen turnamen dan kas.',
+        price: 150000,
+        discount: 60, // 60% off
+        image: 'dashboard_leaderboard_mockup.png'
+    },
+    {
+        id: 'prod_2',
+        catId: 'cat_1',
+        name: 'Kas & Iuran Basic',
+        desc: 'Fokus pada pencatatan keuangan klub sederhana.',
+        price: 50000,
+        discount: 0,
+        image: 'https://placehold.co/600x400/112240/CCFF00?text=Kas+Basic'
+    }
+];
+
+// Load Data
+function getCategories() {
+    const data = localStorage.getItem('sheetworks_categories');
+    return data ? JSON.parse(data) : DEFAULT_CATEGORIES;
+}
+
+function getProducts() {
+    const data = localStorage.getItem('sheetworks_products');
+    return data ? JSON.parse(data) : DEFAULT_PRODUCTS;
+}
+
+function saveCategories(cats) {
+    localStorage.setItem('sheetworks_categories', JSON.stringify(cats));
+    renderCategories();
+}
+
+function saveProducts(prods) {
+    localStorage.setItem('sheetworks_products', JSON.stringify(prods));
+    renderProducts();
+}
+
+// Render Logic
+function renderCategories() {
+    const cats = getCategories();
+    const filterContainer = document.getElementById('category-filter');
+    if (!filterContainer) return;
+
+    // Keep "Semua" button
+    let html = '<button class="filter-btn active" onclick="filterProducts(\'all\', this)">Semua</button>';
+
+    cats.forEach(cat => {
+        html += `<button class="filter-btn" onclick="filterProducts('${cat.id}', this)">${cat.name}</button>`;
+    });
+
+    filterContainer.innerHTML = html;
+}
+
+function renderProducts(filterCatId = 'all') {
+    const products = getProducts();
+    const cats = getCategories();
+    const grid = document.getElementById('product-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    const filtered = filterCatId === 'all'
+        ? products
+        : products.filter(p => p.catId === filterCatId);
+
+    if (filtered.length === 0) {
+        grid.innerHTML = '<p style="text-align:center; color:var(--text-slate); grid-column:1/-1;">Tidak ada produk di kategori ini.</p>';
+        return;
+    }
+
+    filtered.forEach(p => {
+        const catName = cats.find(c => c.id === p.catId)?.name || 'Unknown';
+        const finalPrice = p.price - (p.price * (p.discount / 100));
+
+        // Check Admin for Delete Button
+        const user = firebase.auth().currentUser;
+        const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
+        const deleteBtn = isAdmin ?
+            `<button class="btn-delete-product" onclick="deleteProduct('${p.id}')" title="Hapus Produk">🗑️</button>` : '';
+
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+            ${p.discount > 0 ? `<div class="product-badge">Hemat ${p.discount}%</div>` : ''}
+            <div class="product-image-container">
+                <img src="${p.image}" alt="${p.name}">
+            </div>
+            <div class="product-content">
+                <div style="display:flex; justify-content:space-between;">
+                    <span class="product-cat">${catName}</span>
+                    ${deleteBtn}
+                </div>
+                <h3 class="product-title">${p.name}</h3>
+                <p class="product-desc">${p.desc}</p>
+                <div class="price-row">
+                    <span class="current-price">Rp${finalPrice.toLocaleString('id-ID')}</span>
+                    ${p.discount > 0 ? `<span class="original-price">Rp${p.price.toLocaleString('id-ID')}</span>` : ''}
+                </div>
+                <button class="btn-buy">Beli Sekarang</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function filterProducts(catId, btn) {
+    // UI Active State
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    renderProducts(catId);
+}
+
+// Admin Operations
+function addProduct(name, desc, price, discount, catId, image) {
+    const products = getProducts();
+    const newProd = {
+        id: 'prod_' + Date.now(),
+        catId,
+        name,
+        desc,
+        price: parseInt(price),
+        discount: parseInt(discount),
+        image: image || 'https://placehold.co/600x400/112240/CCFF00?text=No+Image'
+    };
+    products.push(newProd);
+    saveProducts(products);
+}
+
+function deleteProduct(id) {
+    if (!confirm('Hapus produk ini?')) return;
+    const products = getProducts();
+    const updated = products.filter(p => p.id !== id);
+    saveProducts(updated);
+}
+
+// Modal Helpers (Mocking standard prompt/modal for speed implementation)
+function openProductModal() {
+    // Simple Prompt Workflow for MVP
+    // In a real app, use the HTML Modal
+    const cats = getCategories();
+    if (cats.length === 0) { alert("Buat kategori dulu!"); return; }
+
+    const name = prompt("Nama Produk:");
+    if (!name) return;
+
+    const desc = prompt("Deskripsi Singkat:");
+    const price = prompt("Harga Asli (Angka):", "100000");
+    const discount = prompt("Diskon (%):", "0");
+
+    // Simple Category Selection
+    let catMsg = "Pilih ID Kategori:\n";
+    cats.forEach(c => catMsg += `${c.id}: ${c.name}\n`);
+    const catId = prompt(catMsg, cats[0].id);
+
+    const image = prompt("URL Gambar (Kosongkan untuk default):");
+
+    addProduct(name, desc, price, discount, catId, image);
+}
+
+function openCategoryModal() {
+    const action = prompt("Ketik 1 untuk Tambah Kategori, 2 untuk Hapus Kategori");
+    if (action === '1') {
+        const name = prompt("Nama Kategori Baru:");
+        if (name) {
+            const cats = getCategories();
+            cats.push({ id: 'cat_' + Date.now(), name });
+            saveCategories(cats);
+        }
+    } else if (action === '2') {
+        const cats = getCategories();
+        const id = prompt("Masukkan ID Kategori untuk dihapus (Cek console log data if needed, or simple implementation)");
+        // Simplified for MVP
+        alert("Fitur hapus kategori butuh UI lebih lengkap. Gunakan console.");
+    }
+}
+
+// ---------------------------------------------------------
+// INITIALIZATION
+// ---------------------------------------------------------
+
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -146,7 +353,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                // 4. Review Page Logic (Auto-Fill)
+                // 4. Admin: Show Product Management
+                if (userProfile.isAdmin) {
+                    const productControls = document.getElementById('admin-product-controls');
+                    if (productControls) productControls.style.display = 'block';
+                    // Re-render products to show delete buttons
+                    if (typeof renderProducts === 'function') renderProducts();
+                }
+
+                // 5. User UI: Pre-fill
                 const reviewForm = document.getElementById('review-page-form');
                 if (reviewForm) {
                     const nameInput = document.getElementById('review-name');
@@ -160,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (authContainer) {
                     authContainer.innerHTML = `
                         <button onclick="toggleLoginModal()" class="btn-login">
-                            🔒 Login
+                           Login
                         </button>
                     `;
                 }
@@ -174,17 +389,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         btn.style.display = 'none';
                     });
                 }
+                const productControls = document.getElementById('admin-product-controls');
+                if (productControls) productControls.style.display = 'none';
+                if (typeof renderProducts === 'function') renderProducts(); // Re-render to hide delete buttons
 
-                // 4. Protected Route Check (review.html)
-                if (window.location.pathname.includes('review.html')) {
-                    // Redirect immediately if not logged in
-                    window.location.href = 'index.html';
-                    // We can't easily show a custom popup *after* redirect without URL params or Session Storage
-                    // But the requirement was "segera arahkan kembali ke index dengan notifikasi pop-up buatan sendiri"
-                    // Improved User Experience:
-                    // The 'handleWriteReviewClick' handles the button click on Index.
-                    // If they direct link, they get bounced.
-                }
             }
         });
     }
@@ -274,10 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (formContent) formContent.style.display = 'none';
             if (successMsg) successMsg.style.display = 'block';
 
-            // 3. Auto Redirect to Index
+            // 3. Reload to show new review
             setTimeout(() => {
-                window.location.href = 'testimoni.html';
-            }, 3000);
+                location.reload();
+            }, 2000);
         });
     }
 
