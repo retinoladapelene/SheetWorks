@@ -253,9 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const club = document.getElementById('review-club').value || "Pengguna Baru";
             const rating = ratingInput.value;
             const message = document.getElementById('review-message').value;
-            // 'helpful' field might not exist in the basic HTML? Check review.html content.
-            // HTML has: review-name, review-club, review-rating, review-message.
-            // NO review-helpful input in HTML Step 12.
 
             // 1. Save to LocalStorage
             const newReview = {
@@ -270,67 +267,74 @@ document.addEventListener('DOMContentLoaded', () => {
             existingReviews.unshift(newReview); // Add to top
             localStorage.setItem('badmintonReviews', JSON.stringify(existingReviews));
 
-            // 2. WhatsApp Persistence (Optional)
-            const waMessage = `Halo Admin, review baru via web:%0A%0ANama: ${name}%0AKlub: ${club}%0ARating: ${rating} Bintang%0APesan: ${message}`;
-            const waUrl = `https://wa.me/?text=${waMessage}`;
+            // 2. UI Feedback & Redirect
+            const formContent = document.getElementById('form-content');
+            const successMsg = document.getElementById('success-msg');
 
-            if (confirm("Review Tersimpan! Kirim juga ke WhatsApp Admin?")) {
-                window.open(waUrl, '_blank');
-            }
+            if (formContent) formContent.style.display = 'none';
+            if (successMsg) successMsg.style.display = 'block';
 
-            // 3. Redirect back to Main Page
-            window.location.href = 'badminton.html';
+            // 3. Auto Redirect to Index
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 3000);
         });
     }
 
-    // === Logic for BADMINTON.HTML ===
+    // === Logic for BADMINTON.HTML (Index) ===
     if (testimonialGrid) {
         // Load reviews from LocalStorage
         const storedReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
 
-        storedReviews.forEach(review => {
-            const card = document.createElement('div');
-            card.className = 'testimonial-card';
-            card.style.position = 'relative'; // For absolute positioning of delete button
+        testimonialGrid.innerHTML = ''; // Clear to prevent duplicates on reload
 
-            // Check current user for Admin immediately? 
-            // Better to rely on the Auth Listener to unhide buttons, OR start hidden.
-            // I'll add them with display:none;
+        if (storedReviews.length === 0) {
+            testimonialGrid.innerHTML = '<p style="text-align:center; color:var(--text-slate); width:100%;">Belum ada ulasan.</p>';
+        } else {
+            storedReviews.forEach(review => {
+                const card = document.createElement('div');
+                card.className = 'testimonial-card';
+                card.style.position = 'relative';
 
-            card.innerHTML = `
-                <div class="stars">${'⭐'.repeat(review.rating)}</div>
-                <p class="quote">"${review.message}"</p>
-                ${review.image ? `<img src="${review.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin:10px 0; border:1px solid #334155;" alt="Review Image">` : ''}
-                <div class="user-info">
-                    <div class="user-avatar" style="background:var(--neon-yellow); color:var(--primary-blue); font-weight:bold;">
-                        ${review.name.charAt(0).toUpperCase()}
+                card.innerHTML = `
+                    <div class="stars">${'⭐'.repeat(review.rating)}</div>
+                    <p class="quote">"${review.message}"</p>
+                    ${review.image ? `<img src="${review.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin:10px 0; border:1px solid #334155;" alt="Review Image">` : ''}
+                    <div class="user-info">
+                        <div class="user-avatar" style="background:var(--neon-yellow); color:var(--primary-blue); font-weight:bold;">
+                            ${review.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <strong>${review.name}</strong><br>
+                            <small>${review.club}</small>
+                        </div>
                     </div>
-                    <div>
-                        <strong>${review.name}</strong><br>
-                        <small>${review.club}</small>
-                    </div>
-                </div>
-                <!-- Delete Button (Initially Hidden) -->
-                <button class="delete-review-btn" style="position:absolute; top:10px; right:10px; background:none; border:none; color:#ff4757; cursor:pointer; display:none;" title="Hapus Review Ini">🗑️</button>
-            `;
+                    <!-- Delete Button: Only visible to Admin (Auth Listener handles toggle) -->
+                    <button class="delete-review-btn" 
+                        data-date="${review.date}"
+                        style="position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer; display:none;" 
+                        title="Hapus Review Ini">
+                        🗑️
+                    </button>
+                `;
 
-            // Delete Logic
-            card.querySelector('.delete-review-btn').addEventListener('click', () => {
-                if (confirm('Yakin ingin menghapus review ini?')) {
-                    // Remove from DOM
-                    card.remove();
+                // Delete Logic
+                const deleteBtn = card.querySelector('.delete-review-btn');
+                deleteBtn.addEventListener('click', () => {
+                    if (confirm('Yakin ingin menghapus review ini?')) {
+                        // Remove from LocalStorage
+                        const currentReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
+                        const updatedReviews = currentReviews.filter(r => r.date !== review.date);
+                        localStorage.setItem('badmintonReviews', JSON.stringify(updatedReviews));
 
-                    // Remove from LocalStorage
-                    const currentReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-                    // Note: This simple filter might delete duplicates if date isn't unique enough or missing.
-                    // The previous code used review.date.
-                    const updatedReviews = currentReviews.filter(r => r.date !== review.date);
-                    localStorage.setItem('badmintonReviews', JSON.stringify(updatedReviews));
-                }
+                        // Update UI
+                        card.remove();
+                    }
+                });
+
+                testimonialGrid.appendChild(card);
             });
-
-            testimonialGrid.prepend(card);
-        });
+        }
     }
 
     // Helper: Update Star Visuals (Used if we move logic here)
