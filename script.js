@@ -168,51 +168,51 @@ function handleWriteReviewClick(e) {
 // ---------------------------------------------------------
 // ... (Data & Load logic same as before, see next block for changes)
 
-// Default Data (Seed)
-const DEFAULT_CATEGORIES = [
-    { id: 'cat_1', name: 'Template Spreadsheet' },
-    { id: 'cat_2', name: 'E-Book Panduan' }
-];
-
-const DEFAULT_PRODUCTS = [
-    {
-        id: 'prod_1',
-        catId: 'cat_1',
-        name: 'Badminton Pro V3',
-        desc: 'Template lengkap untuk manajemen turnamen dan kas.',
-        price: 150000,
-        discount: 60,
-        image: 'dashboard_leaderboard_mockup.png'
-    },
-    {
-        id: 'prod_2',
-        catId: 'cat_1',
-        name: 'Kas & Iuran Basic',
-        desc: 'Fokus pada pencatatan keuangan klub sederhana.',
-        price: 50000,
-        discount: 0,
-        image: 'https://placehold.co/600x400/112240/CCFF00?text=Kas+Basic'
-    }
-];
+// Cached Data (Synced with Firestore)
+let cachedCategories = [];
+let cachedProducts = [];
 
 function getCategories() {
-    const data = localStorage.getItem('sheetworks_categories');
-    return data ? JSON.parse(data) : DEFAULT_CATEGORIES;
+    return cachedCategories;
 }
 
 function getProducts() {
-    const data = localStorage.getItem('sheetworks_products');
-    return data ? JSON.parse(data) : DEFAULT_PRODUCTS;
+    return cachedProducts;
 }
 
-function saveCategories(cats) {
-    localStorage.setItem('sheetworks_categories', JSON.stringify(cats));
-    renderCategories();
-}
+// NOTE: saveCategories and saveProducts are removed as we now write directly to Firestore
 
-function saveProducts(prods) {
-    localStorage.setItem('sheetworks_products', JSON.stringify(prods));
-    renderProducts();
+function initFirestoreListeners() {
+    // 1. Categories Listener
+    firebase.firestore().collection('categories').onSnapshot((snapshot) => {
+        cachedCategories = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.id = doc.id; // Use Firestore ID
+            cachedCategories.push(data);
+        });
+        renderCategories();
+        // Re-render products if category names changed
+        renderProducts(document.querySelector('.filter-btn.active')?.dataset?.cat || 'all');
+    }, (error) => {
+        console.error("Error getting categories:", error);
+    });
+
+    // 2. Products Listener
+    firebase.firestore().collection('products').onSnapshot((snapshot) => {
+        cachedProducts = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            data.id = doc.id; // Use Firestore ID
+            cachedProducts.push(data);
+        });
+
+        // Render with current filter
+        const currentFilter = document.querySelector('.filter-btn.active')?.dataset?.cat || 'all';
+        renderProducts(currentFilter);
+    }, (error) => {
+        console.error("Error getting products:", error);
+    });
 }
 
 function renderCategories() {
@@ -220,9 +220,9 @@ function renderCategories() {
     const filterContainer = document.getElementById('category-filter');
     if (!filterContainer) return;
 
-    let html = '<button class="filter-btn active" onclick="filterProducts(\'all\', this)">Semua</button>';
-    cats.forEach(cat => {
-        html += `<button class="filter-btn" onclick="filterProducts('${cat.id}', this)">${cat.name}</button>`;
+    let html = '<button class="filter-btn active" data-cat="all" onclick="filterProducts(\'all\', this)">Semua</button>';
+    cachedCategories.forEach(cat => {
+        html += `<button class="filter-btn" data-cat="${cat.id}" onclick="filterProducts('${cat.id}', this)">${cat.name}</button>`;
     });
     filterContainer.innerHTML = html;
 }
@@ -313,29 +313,31 @@ function handleProductSubmit(e) {
     const catId = document.getElementById('prod-cat').value;
     const image = document.getElementById('prod-img').value;
 
-    const products = getProducts();
-    const newProd = {
-        id: 'prod_' + Date.now(),
+    // Add to Firestore
+    firebase.firestore().collection('products').add({
         catId,
         name,
         desc,
         price: parseInt(price),
         discount: parseInt(discount),
-        image: image || 'https://placehold.co/600x400/112240/CCFF00?text=No+Image'
-    };
-    products.push(newProd);
-    saveProducts(products);
-
-    closeModal('product-form-modal');
-    showNotification("Sukses", "Produk berhasil ditambahkan!");
+        image: image || 'https://placehold.co/600x400/112240/CCFF00?text=No+Image',
+        createdAt: new Date().toISOString()
+    })
+        .then(() => {
+            closeModal('product-form-modal');
+            showNotification("Sukses", "Produk berhasil ditambahkan!");
+        })
+        .catch((error) => {
+            console.error("Error adding product: ", error);
+            showNotification("Gagal", "Gagal menambah produk: " + error.message, "error");
+        });
 }
 
 function deleteProduct(id) {
     showConfirm("Yakin ingin menghapus produk ini?", () => {
-        const products = getProducts();
-        const updated = products.filter(p => p.id !== id);
-        saveProducts(updated);
-        showNotification("Terhapus", "Produk telah dihapus.");
+        firebase.firestore().collection('products').doc(id).delete()
+            .then(() => showNotification("Terhapus", "Produk telah dihapus."))
+            .catch((error) => showNotification("Error", "Gagal hapus: " + error.message, "error"));
     });
 }
 
@@ -349,18 +351,26 @@ function handleCategorySubmit(e) {
     e.preventDefault();
     const name = document.getElementById('cat-name-new').value;
     if (name) {
-        const cats = getCategories();
-        cats.push({ id: 'cat_' + Date.now(), name });
-        saveCategories(cats);
-        document.getElementById('cat-name-new').value = ''; // Reset input
-        renderDeleteCategoryList(); // Update list in modal
-        showNotification("Sukses", "Kategori baru ditambahkan.");
+        firebase.firestore().collection('categories').add({
+            name: name,
+            createdAt: new Date().toISOString()
+        })
+            .then(() => {
+                document.getElementById('cat-name-new').value = '';
+                renderDeleteCategoryList(); // Update logic might need check as list updates via listener now
+                showNotification("Sukses", "Kategori baru ditambahkan.");
+            })
+            .catch((error) => {
+                showNotification("Error", "Gagal tambah kategori: " + error.message, "error");
+            });
     }
 }
 
 function renderDeleteCategoryList() {
+    // Uses cached categories which are updated by listener
     const cats = getCategories();
     const list = document.getElementById('cat-delete-list');
+    if (!list) return; // Guard clause
     list.innerHTML = cats.map(c => `
         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:8px; border-radius:5px;">
             <span>${c.name}</span>
@@ -371,11 +381,9 @@ function renderDeleteCategoryList() {
 
 function deleteCategory(id) {
     showConfirm("Hapus kategori ini? Produk terkait mungkin akan error.", () => {
-        const cats = getCategories();
-        const updated = cats.filter(c => c.id !== id);
-        saveCategories(updated);
-        renderDeleteCategoryList(); // Refresh modal list
-        showNotification("Terhapus", "Kategori telah dihapus.");
+        firebase.firestore().collection('categories').doc(id).delete()
+            .then(() => showNotification("Terhapus", "Kategori telah dihapus."))
+            .catch((error) => showNotification("Error", "Gagal hapus: " + error.message, "error"));
     });
 }
 
@@ -445,10 +453,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load initial data
+    // Load initial data logic moved to Firestore listeners
     if (document.getElementById('product-grid')) {
-        renderCategories();
-        renderProducts();
+        // Initialize Firestore Listeners
+        if (typeof firebase !== 'undefined') {
+            initFirestoreListeners();
+        }
+        // Initial empty render or loading state could be added here
     }
 
     if (document.getElementById('testimonial-grid')) {
