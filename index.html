@@ -19,8 +19,8 @@
 
         <ul class="nav-links">
             <li><a href="#" class="active">Home</a></li>
-            <li><a href="#pricing">Harga</a></li>
-            <li><a href="testimoni.html">Testimoni</a></li>
+            <li><a href="#products">Produk</a></li>
+            <li><a href="#testimonials">Testimoni</a></li>
         </ul>
 
         <!-- Login / User Profile Container (Moved Here) -->
@@ -101,24 +101,98 @@
     </section>
 
     <!-- Special Offer / Pricing Section -->
-    <section id="pricing" class="pricing">
+    <!-- Products Section (Dynamic) -->
+    <section id="products" class="products-section" style="padding: 80px 0; background-color: var(--primary-blue);">
         <div class="container">
-            <h2 class="section-title">Investasi Kecil Untuk Manajemen Profesional</h2>
-            <div class="pricing-card">
-                <div class="discount-badge">DISKON 60%</div>
-                <h3>Lifetime Access Template</h3>
-                <span class="old-price">Rp75.000
-                </span>
-                <span class="new-price">Rp30.000<span>/sekali bayar</span></span>
+            <h2 class="section-title">Produk & Layanan Digital</h2>
 
-                <ul class="features-list">
-                    <li>Full Access Template Spreadsheet</li>
-                    <li>Video Tutorial Penggunaan</li>
-                </ul>
+            <!-- Category Filter (Admin Managed) -->
+            <div id="category-filter"
+                style="display:flex; justify-content:center; gap:15px; margin-bottom:40px; flex-wrap:wrap;">
+                <!-- Categories injected by JS -->
+                <button class="filter-btn active" data-cat="all">Semua</button>
+            </div>
 
-                <a href="#" class="btn-cta">Beli Sekarang Juga</a>
-                <p style="margin-top:15px; font-size: 0.9rem; color: #888;">*Promo terbatas untuk 50 pembeli pertama
-                    hari ini.</p>
+            <!-- Product Grid -->
+            <div id="product-grid" class="product-grid">
+                <!-- Products injected by JS -->
+            </div>
+
+            <!-- Admin Product Controls (Hidden by default) -->
+            <div id="admin-product-controls"
+                style="display:none; text-align:center; margin-top:40px; border-top:1px solid #334155; padding-top:20px;">
+                <h3 style="color:var(--neon-yellow); margin-bottom:20px;">Panel Admin: Kelola Produk</h3>
+                <button onclick="openProductModal()" class="btn-cta" style="font-size:0.9rem; padding:10px 20px;">+
+                    Tambah Produk Baru</button>
+                <button onclick="openCategoryModal()" class="btn-cta"
+                    style="font-size:0.9rem; padding:10px 20px; background:transparent; border:1px solid var(--neon-yellow); color:var(--neon-yellow);">Kelola
+                    Kategori</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <h2 class="section-title">Review Pengguna SheetWorks</h2>
+            <p style="text-align:center; margin-bottom:40px; color:var(--text-slate);">Cerita asli dari pengelola klub
+                dan komunitas badminton.</p>
+
+            <!-- Review Form Trigger -->
+            <div style="text-align: center; margin-bottom: 40px;">
+                <a href="#" onclick="handleWriteReviewClick(event)" class="btn-cta"
+                    style="text-decoration:none; display:inline-block;">Tulis
+                    Pengalaman Anda</a>
+            </div>
+
+            <!-- Review Form Container (Initially Hidden) -->
+            <div class="testimonial-form-container" id="form-card" style="display:none;">
+                <div id="form-content">
+                    <h2 style="text-align:center; margin-bottom:25px; color:var(--text-white);">Bagikan Ulasan</h2>
+                    <form id="review-page-form">
+                        <div class="form-group">
+                            <label>Nama Lengkap <span style="color:red">*</span></label>
+                            <input type="text" id="review-name" class="form-control" required
+                                placeholder="Contoh: Budi Santoso">
+                        </div>
+                        <div class="form-group">
+                            <label>Asal Klub / Komunitas</label>
+                            <input type="text" id="review-club" class="form-control"
+                                placeholder="Contoh: PB Roxy Jakarta">
+                        </div>
+                        <div class="form-group">
+                            <label>Berikan Rating <span style="color:red">*</span></label>
+                            <div class="rating-wrapper"
+                                style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; text-align:center;">
+                                <div class="stars" id="star-group" style="justify-content:center;">
+                                    <span class="star" data-value="5">★</span>
+                                    <span class="star" data-value="4">★</span>
+                                    <span class="star" data-value="3">★</span>
+                                    <span class="star" data-value="2">★</span>
+                                    <span class="star" data-value="1">★</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="review-rating" value="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Ceritakan Pengalaman Anda <span style="color:red">*</span></label>
+                            <textarea id="review-message" class="form-control" rows="4" required
+                                placeholder="Apa yang paling membantu dari template ini?"></textarea>
+                        </div>
+                        <button type="submit" class="btn-submit">Kirim Ulasan</button>
+                        <button type="button" onclick="closeReviewForm()"
+                            style="background:none; border:none; color:var(--text-slate); width:100%; margin-top:10px; cursor:pointer;">Batal</button>
+                    </form>
+                </div>
+                <div id="success-msg" style="display:none; text-align:center; padding:40px;">
+                    <div style="font-size:4rem; margin-bottom:20px;">✨</div>
+                    <h2 style="color:var(--text-white);">Terima Kasih!</h2>
+                    <p style="color:var(--text-slate);">Ulasan Anda berhasil disimpan.</p>
+                </div>
+            </div>
+
+            <div class="testimonial-grid" id="testimonial-grid">
+                <!-- Reviews injected by JS -->
             </div>
         </div>
     </section>
