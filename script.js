@@ -96,21 +96,12 @@ function handleWriteReviewClick(e) {
     e.preventDefault();
     const user = firebase.auth().currentUser;
     if (user) {
-        // Logged in: Show form on Index page
-        const formContainer = document.getElementById('form-card');
-        if (formContainer) {
-            formContainer.style.display = 'block';
-            formContainer.scrollIntoView({ behavior: 'smooth' });
-        }
+        // Logged in: Go to review page
+        window.location.href = 'review.html';
     } else {
         // Not logged in: Show login modal
         toggleLoginModal();
     }
-}
-
-function closeReviewForm() {
-    const formContainer = document.getElementById('form-card');
-    if (formContainer) formContainer.style.display = 'none';
 }
 
 // ---------------------------------------------------------
@@ -482,9 +473,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (formContent) formContent.style.display = 'none';
             if (successMsg) successMsg.style.display = 'block';
 
-            // 3. Reload to show new review
+            // 3. Redirect to Index to see the review
             setTimeout(() => {
-                location.reload();
+                window.location.href = 'index.html';
             }, 2000);
         });
     }
