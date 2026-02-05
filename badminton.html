@@ -162,8 +162,9 @@
     </footer>
 
     <!-- Firebase SDKs (Using defer to load non-blocking) -->
-    <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <!-- Firebase SDKs (Removed defer to ensure they load before script.js) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 
     <!-- Login Button Container (Top Right) -->
     <div class="login-btn-container" id="auth-container">
@@ -179,9 +180,10 @@
             <button class="modal-close" onclick="toggleLoginModal()">&times;</button>
             <h2 style="color:var(--highlight-color); margin-bottom:10px;">Login Member</h2>
             <p style="margin-bottom:20px;">Masuk untuk menulis review dan akses fitur komunitas.</p>
-            
+
             <button class="google-btn" onclick="loginGoogle()">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"
+                    class="google-icon">
                 Lanjut dengan Google
             </button>
         </div>
