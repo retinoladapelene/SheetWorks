@@ -27,79 +27,138 @@ const ADMIN_EMAILS = ['pbsn290704@gmail.com']; // Ganti dengan email admin seben
 // ---------------------------------------------------------
 
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// UI HELPER FUNCTIONS (MODALS & NOTIFICATIONS)
+// ---------------------------------------------------------
+
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+        // Animation reset
+        const card = modal.querySelector('.modal-card');
+        if (card) {
+            card.style.animation = 'none';
+            card.offsetHeight; /* trigger reflow */
+            card.style.animation = 'slideUp 0.3s ease forwards';
+        }
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('active');
+}
+
+// Global Notification (Replaces alert)
+function showNotification(title, message, type = 'success') {
+    const modal = document.getElementById('notification-modal');
+    const icon = document.getElementById('notif-icon');
+    const tEl = document.getElementById('notif-title');
+    const mEl = document.getElementById('notif-message');
+
+    if (!modal) return;
+
+    tEl.textContent = title;
+    mEl.textContent = message;
+
+    if (type === 'error') {
+        icon.textContent = '❌';
+        tEl.style.color = '#ff4757';
+    } else {
+        icon.textContent = '✨';
+        tEl.style.color = '#dfff00'; // Neon Yellow
+    }
+
+    showModal('notification-modal');
+
+    // Auto close after 3 seconds
+    setTimeout(() => {
+        closeModal('notification-modal');
+    }, 3000);
+}
+
+// Global Confirmation (Replaces confirm)
+let confirmCallback = null;
+function showConfirm(message, callback) {
+    const modal = document.getElementById('confirm-modal');
+    const msgEl = document.getElementById('confirm-message');
+    const btnParams = document.getElementById('btn-confirm-act');
+
+    if (!modal) return;
+
+    msgEl.textContent = message;
+    confirmCallback = callback;
+
+    // Reset button listener
+    const newBtn = btnParams.cloneNode(true);
+    btnParams.parentNode.replaceChild(newBtn, btnParams);
+
+    newBtn.addEventListener('click', () => {
+        if (confirmCallback) confirmCallback();
+        closeModal('confirm-modal');
+    });
+
+    showModal('confirm-modal');
+}
+
+// ---------------------------------------------------------
 // AUTHENTICATION LOGIC
 // ---------------------------------------------------------
 
-/**
- * Trigger Google Login Popup
- */
 function loginGoogle() {
     if (typeof firebase === 'undefined') {
-        alert("Firebase SDK belum dimuat. Cek koneksi internet atau konfigurasi.");
+        showNotification("Error", "Firebase SDK belum dimuat.", 'error');
         return;
     }
     const provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider)
         .then((result) => {
-            // Login Success
             console.log("User logged in:", result.user.displayName);
-            toggleLoginModal(); // Close modal if open
+            toggleLoginModal();
+            showNotification("Berhasil Login", `Selamat datang, ${result.user.displayName}!`);
         })
         .catch((error) => {
             console.error("Login Error:", error);
-            alert("Gagal login: " + error.message);
+            showNotification("Gagal Login", error.message, 'error');
         });
 }
 
-/**
- * Custom Logout Flow
- */
 function logout() {
-    // Open the custom logout modal
-    const modal = document.getElementById('logout-modal');
-    if (modal) modal.classList.add('active');
+    showModal('logout-modal');
 }
 
 function closeLogoutModal() {
-    const modal = document.getElementById('logout-modal');
-    if (modal) modal.classList.remove('active');
+    closeModal('logout-modal');
 }
 
 function confirmLogout() {
     firebase.auth().signOut().then(() => {
-        console.log("User signed out");
         sessionStorage.removeItem('userProfile');
         closeLogoutModal();
-        // UI update will be handled by onAuthStateChanged
-        // Reloading might be needed if we want to clear all state cleanly
         location.reload();
     }).catch((error) => {
-        console.error("Logout Error:", error);
+        showNotification("Error", "Gagal Logout.", 'error');
     });
 }
 
-/**
- * Toggle Login Modal Visibility
- */
 function toggleLoginModal() {
     const modal = document.getElementById('login-modal');
     if (modal) {
-        modal.classList.toggle('active');
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else {
+            modal.classList.add('active');
+        }
     }
 }
 
-/**
- * Handle "Write Review" Click
- * Checks if user is logged in before showing form
- */
 function handleWriteReviewClick(e) {
     e.preventDefault();
     const user = firebase.auth().currentUser;
     if (user) {
-        // Logged in: Go to review page
         window.location.href = 'review.html';
     } else {
-        // Not logged in: Show login modal
         toggleLoginModal();
     }
 }
@@ -107,6 +166,7 @@ function handleWriteReviewClick(e) {
 // ---------------------------------------------------------
 // PRODUCT MANAGEMENT SYSTEM (ADMIN)
 // ---------------------------------------------------------
+// ... (Data & Load logic same as before, see next block for changes)
 
 // Default Data (Seed)
 const DEFAULT_CATEGORIES = [
@@ -121,7 +181,7 @@ const DEFAULT_PRODUCTS = [
         name: 'Badminton Pro V3',
         desc: 'Template lengkap untuk manajemen turnamen dan kas.',
         price: 150000,
-        discount: 60, // 60% off
+        discount: 60,
         image: 'dashboard_leaderboard_mockup.png'
     },
     {
@@ -135,7 +195,6 @@ const DEFAULT_PRODUCTS = [
     }
 ];
 
-// Load Data
 function getCategories() {
     const data = localStorage.getItem('sheetworks_categories');
     return data ? JSON.parse(data) : DEFAULT_CATEGORIES;
@@ -156,19 +215,15 @@ function saveProducts(prods) {
     renderProducts();
 }
 
-// Render Logic
 function renderCategories() {
     const cats = getCategories();
     const filterContainer = document.getElementById('category-filter');
     if (!filterContainer) return;
 
-    // Keep "Semua" button
     let html = '<button class="filter-btn active" onclick="filterProducts(\'all\', this)">Semua</button>';
-
     cats.forEach(cat => {
         html += `<button class="filter-btn" onclick="filterProducts('${cat.id}', this)">${cat.name}</button>`;
     });
-
     filterContainer.innerHTML = html;
 }
 
@@ -193,10 +248,8 @@ function renderProducts(filterCatId = 'all') {
         const catName = cats.find(c => c.id === p.catId)?.name || 'Unknown';
         const finalPrice = p.price - (p.price * (p.discount / 100));
 
-        // Check Admin for Delete Button
         const user = firebase.auth().currentUser;
         const isAdmin = user && ADMIN_EMAILS.includes(user.email);
-
         const deleteBtn = isAdmin ?
             `<button class="btn-delete-product" onclick="deleteProduct('${p.id}')" title="Hapus Produk">🗑️</button>` : '';
 
@@ -226,15 +279,40 @@ function renderProducts(filterCatId = 'all') {
 }
 
 function filterProducts(catId, btn) {
-    // UI Active State
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-
     renderProducts(catId);
 }
 
-// Admin Operations
-function addProduct(name, desc, price, discount, catId, image) {
+// --- ADMIN OPERATIONS (NEW CUSTOM MODALS) ---
+
+// 1. Product Management
+function openProductModal() {
+    const cats = getCategories();
+    if (cats.length === 0) {
+        showNotification("Info", "Buat kategori dulu sebelum tambah produk.", "error");
+        return;
+    }
+
+    // Populate Category Dropdown
+    const catSelect = document.getElementById('prod-cat');
+    catSelect.innerHTML = cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+    // Clear Inputs
+    document.getElementById('admin-product-form').reset();
+
+    showModal('product-form-modal');
+}
+
+function handleProductSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('prod-name').value;
+    const desc = document.getElementById('prod-desc').value;
+    const price = document.getElementById('prod-price').value;
+    const discount = document.getElementById('prod-discount').value || 0;
+    const catId = document.getElementById('prod-cat').value;
+    const image = document.getElementById('prod-img').value;
+
     const products = getProducts();
     const newProd = {
         id: 'prod_' + Date.now(),
@@ -247,77 +325,82 @@ function addProduct(name, desc, price, discount, catId, image) {
     };
     products.push(newProd);
     saveProducts(products);
+
+    closeModal('product-form-modal');
+    showNotification("Sukses", "Produk berhasil ditambahkan!");
 }
 
 function deleteProduct(id) {
-    if (!confirm('Hapus produk ini?')) return;
-    const products = getProducts();
-    const updated = products.filter(p => p.id !== id);
-    saveProducts(updated);
+    showConfirm("Yakin ingin menghapus produk ini?", () => {
+        const products = getProducts();
+        const updated = products.filter(p => p.id !== id);
+        saveProducts(updated);
+        showNotification("Terhapus", "Produk telah dihapus.");
+    });
 }
 
-// Modal Helpers (Mocking standard prompt/modal for speed implementation)
-function openProductModal() {
-    // Simple Prompt Workflow for MVP
-    // In a real app, use the HTML Modal
-    const cats = getCategories();
-    if (cats.length === 0) { alert("Buat kategori dulu!"); return; }
-
-    const name = prompt("Nama Produk:");
-    if (!name) return;
-
-    const desc = prompt("Deskripsi Singkat:");
-    const price = prompt("Harga Asli (Angka):", "100000");
-    const discount = prompt("Diskon (%):", "0");
-
-    // Simple Category Selection
-    let catMsg = "Pilih ID Kategori:\n";
-    cats.forEach(c => catMsg += `${c.id}: ${c.name}\n`);
-    const catId = prompt(catMsg, cats[0].id);
-
-    const image = prompt("URL Gambar (Kosongkan untuk default):");
-
-    addProduct(name, desc, price, discount, catId, image);
-}
-
+// 2. Category Management
 function openCategoryModal() {
-    const action = prompt("Ketik 1 untuk Tambah Kategori, 2 untuk Hapus Kategori");
-    if (action === '1') {
-        const name = prompt("Nama Kategori Baru:");
-        if (name) {
-            const cats = getCategories();
-            cats.push({ id: 'cat_' + Date.now(), name });
-            saveCategories(cats);
-        }
-    } else if (action === '2') {
+    showModal('category-form-modal');
+    renderDeleteCategoryList();
+}
+
+function handleCategorySubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('cat-name-new').value;
+    if (name) {
         const cats = getCategories();
-        const id = prompt("Masukkan ID Kategori untuk dihapus (Cek console log data if needed, or simple implementation)");
-        // Simplified for MVP
-        alert("Fitur hapus kategori butuh UI lebih lengkap. Gunakan console.");
+        cats.push({ id: 'cat_' + Date.now(), name });
+        saveCategories(cats);
+        document.getElementById('cat-name-new').value = ''; // Reset input
+        renderDeleteCategoryList(); // Update list in modal
+        showNotification("Sukses", "Kategori baru ditambahkan.");
     }
+}
+
+function renderDeleteCategoryList() {
+    const cats = getCategories();
+    const list = document.getElementById('cat-delete-list');
+    list.innerHTML = cats.map(c => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:8px; border-radius:5px;">
+            <span>${c.name}</span>
+            <button onclick="deleteCategory('${c.id}')" style="background:none; border:none; cursor:pointer;">❌</button>
+        </div>
+    `).join('');
+}
+
+function deleteCategory(id) {
+    showConfirm("Hapus kategori ini? Produk terkait mungkin akan error.", () => {
+        const cats = getCategories();
+        const updated = cats.filter(c => c.id !== id);
+        saveCategories(updated);
+        renderDeleteCategoryList(); // Refresh modal list
+        showNotification("Terhapus", "Kategori telah dihapus.");
+    });
+}
+
+// 3. Review Management (Index)
+function setupReviewDeleteListeners() {
+    // This is called inside onAuthStateChanged logic or render
+    // But since renderProducts manages its own delete buttons, rely on that.
+    // For Reviews (which are rendered in DOMContentLoaded logic below):
 }
 
 // ---------------------------------------------------------
 // INITIALIZATION
 // ---------------------------------------------------------
 
-
-
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ---------------------------------------------------------
-    // AUTH STATE LISTENER (Runs on all pages)
-    // ---------------------------------------------------------
+    // ... (Auth Listener - same as before, see logic below for minor cleanup) ...
     if (typeof firebase !== 'undefined') {
         firebase.auth().onAuthStateChanged((user) => {
+            // ... (Auth UI updates) ...
             const authContainer = document.getElementById('auth-container');
             const testimonialGrid = document.getElementById('testimonial-grid');
 
             if (user) {
-                // USER IS LOGGED IN
-
-                // 1. Update Auth UI (Header)
-                // Note: Now inside the Liquid Nav
+                // ... Logged In Logic ...
                 if (authContainer) {
                     authContainer.innerHTML = `
                         <div class="user-profile-display" onclick="logout()" title="Klik untuk Logout">
@@ -328,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 }
 
-                // 2. Save Profile for Review Page
                 const userProfile = {
                     name: user.displayName,
                     photo: user.photoURL,
@@ -337,155 +419,121 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 sessionStorage.setItem('userProfile', JSON.stringify(userProfile));
 
-                // 3. Admin: Show Delete Buttons (If on badminton.html)
                 if (testimonialGrid && userProfile.isAdmin) {
-                    document.querySelectorAll('.delete-review-btn').forEach(btn => {
-                        btn.style.display = 'block';
-                    });
+                    renderReviews(true); // Re-render reviews to show delete buttons
                 }
 
-                // 4. Admin: Show Product Management
                 if (userProfile.isAdmin) {
                     const productControls = document.getElementById('admin-product-controls');
                     if (productControls) productControls.style.display = 'block';
-                    // Re-render products to show delete buttons
                     if (typeof renderProducts === 'function') renderProducts();
                 }
 
-                // 5. User UI: Pre-fill
-                const reviewForm = document.getElementById('review-page-form');
-                if (reviewForm) {
-                    const nameInput = document.getElementById('review-name');
-                    if (nameInput) nameInput.value = user.displayName;
-                }
-
             } else {
-                // USER IS LOGGED OUT
-
-                // 1. Reset Auth UI
+                // ... Logged Out Logic ...
                 if (authContainer) {
-                    authContainer.innerHTML = `
-                        <button onclick="toggleLoginModal()" class="btn-login">
-                           Login
-                        </button>
-                    `;
+                    authContainer.innerHTML = `<button onclick="toggleLoginModal()" class="btn-login">Login</button>`;
                 }
-
-                // 2. Clear Session
                 sessionStorage.removeItem('userProfile');
 
-                // 3. Hide Admin Controls
-                if (testimonialGrid) {
-                    document.querySelectorAll('.delete-review-btn').forEach(btn => {
-                        btn.style.display = 'none';
-                    });
-                }
                 const productControls = document.getElementById('admin-product-controls');
                 if (productControls) productControls.style.display = 'none';
-                if (typeof renderProducts === 'function') renderProducts(); // Re-render to hide delete buttons
+                if (typeof renderProducts === 'function') renderProducts();
 
+                if (testimonialGrid) renderReviews(false);
             }
         });
     }
 
+    // Load initial data
+    if (document.getElementById('product-grid')) {
+        renderCategories();
+        renderProducts();
+    }
 
-    // ---------------------------------------------------------
-    // Common: FAQ Accordion (Runs on pages with .faq-question)
-    // ---------------------------------------------------------
+    if (document.getElementById('testimonial-grid')) {
+        renderReviews(false);
+    }
+
+    // FAQ & Scroller logic (keep same)
     const faqQuestions = document.querySelectorAll('.faq-question');
     if (faqQuestions.length > 0) {
         faqQuestions.forEach(question => {
             question.addEventListener('click', () => {
                 const item = question.parentElement;
-                // Close other items
                 document.querySelectorAll('.faq-item').forEach(otherItem => {
-                    if (otherItem !== item) {
-                        otherItem.classList.remove('active');
-                    }
+                    if (otherItem !== item) otherItem.classList.remove('active');
                 });
-                // Toggle current item
                 item.classList.toggle('active');
             });
         });
     }
 
-    // smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-            }
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
         });
     });
 
-    // ---------------------------------------------------------
-    // PAGE SPECIFIC LOGIC
-    // ---------------------------------------------------------
-
-    // Check which page we are on
+    // Review Page Specific
     const reviewForm = document.getElementById('review-page-form');
-    const testimonialGrid = document.getElementById('testimonial-grid');
-
-    // === Logic for REVIEW.HTML ===
     if (reviewForm) {
+        // ... (Star logic same as before) ...
         const ratingInput = document.getElementById('review-rating');
-        // Selectors matched to review.html: id="star-group" and class="star"
-        const starContainer = document.getElementById('star-group');
-        const stars = starContainer ? starContainer.querySelectorAll('.star') : [];
-
-        // Star Rating Click Logic
+        const stars = document.querySelectorAll('.star');
         stars.forEach(star => {
             star.addEventListener('click', () => {
                 const value = star.getAttribute('data-value');
                 ratingInput.value = value;
-                updateStars(stars, value);
+                // updateStars helper
+                stars.forEach(s => {
+                    if (parseInt(s.getAttribute('data-value')) <= parseInt(value)) {
+                        s.classList.add('selected');
+                        s.textContent = '★';
+                    } else {
+                        s.classList.remove('selected');
+                    }
+                });
             });
         });
 
-        // Form Submission
         reviewForm.addEventListener('submit', (e) => {
             e.preventDefault();
-
+            // ... (Save logic) ...
             const name = document.getElementById('review-name').value;
             const club = document.getElementById('review-club').value || "Pengguna Baru";
             const rating = ratingInput.value;
             const message = document.getElementById('review-message').value;
 
-            // 1. Save to LocalStorage
             const newReview = {
-                name,
-                club,
-                rating,
-                message,
+                name, club, rating, message,
                 date: new Date().toISOString()
             };
 
             const existingReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-            existingReviews.unshift(newReview); // Add to top
+            existingReviews.unshift(newReview);
             localStorage.setItem('badmintonReviews', JSON.stringify(existingReviews));
 
-            // 2. UI Feedback & Redirect
             const formContent = document.getElementById('form-content');
             const successMsg = document.getElementById('success-msg');
-
             if (formContent) formContent.style.display = 'none';
             if (successMsg) successMsg.style.display = 'block';
 
-            // 3. Redirect to Index to see the review
             setTimeout(() => {
                 window.location.href = 'index.html';
             }, 2000);
         });
     }
 
-    // === Logic for BADMINTON.HTML (Index) ===
-    if (testimonialGrid) {
-        // Load reviews from LocalStorage
-        const storedReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
+    // Helper to render reviews (Extracted to allow re-render on auth)
+    function renderReviews(isAdmin) {
+        const testimonialGrid = document.getElementById('testimonial-grid');
+        if (!testimonialGrid) return;
 
-        testimonialGrid.innerHTML = ''; // Clear to prevent duplicates on reload
+        const storedReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
+        testimonialGrid.innerHTML = '';
 
         if (storedReviews.length === 0) {
             testimonialGrid.innerHTML = '<p style="text-align:center; color:var(--text-slate); width:100%;">Belum ada ulasan.</p>';
@@ -494,11 +542,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const card = document.createElement('div');
                 card.className = 'testimonial-card';
                 card.style.position = 'relative';
-
                 card.innerHTML = `
                     <div class="stars">${'⭐'.repeat(review.rating)}</div>
                     <p class="quote">"${review.message}"</p>
-                    ${review.image ? `<img src="${review.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin:10px 0; border:1px solid #334155;" alt="Review Image">` : ''}
                     <div class="user-info">
                         <div class="user-avatar" style="background:var(--neon-yellow); color:var(--primary-blue); font-weight:bold;">
                             ${review.name.charAt(0).toUpperCase()}
@@ -508,44 +554,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             <small>${review.club}</small>
                         </div>
                     </div>
-                    <!-- Delete Button: Only visible to Admin (Auth Listener handles toggle) -->
-                    <button class="delete-review-btn" 
-                        data-date="${review.date}"
-                        style="position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer; display:none;" 
-                        title="Hapus Review Ini">
-                        🗑️
-                    </button>
+                    ${isAdmin ? `<button class="delete-review-btn" style="position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer;" title="Hapus Review Ini">🗑️</button>` : ''}
                 `;
 
-                // Delete Logic
-                const deleteBtn = card.querySelector('.delete-review-btn');
-                deleteBtn.addEventListener('click', () => {
-                    if (confirm('Yakin ingin menghapus review ini?')) {
-                        // Remove from LocalStorage
-                        const currentReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-                        const updatedReviews = currentReviews.filter(r => r.date !== review.date);
-                        localStorage.setItem('badmintonReviews', JSON.stringify(updatedReviews));
-
-                        // Update UI
-                        card.remove();
-                    }
-                });
-
+                if (isAdmin) {
+                    const deleteBtn = card.querySelector('.delete-review-btn');
+                    deleteBtn.addEventListener('click', () => {
+                        showConfirm("Hapus review ini?", () => {
+                            const currentReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
+                            const updatedReviews = currentReviews.filter(r => r.date !== review.date);
+                            localStorage.setItem('badmintonReviews', JSON.stringify(updatedReviews));
+                            renderReviews(true); // Re-render
+                            showNotification("Terhapus", "Review berhasil dihapus.");
+                        });
+                    });
+                }
                 testimonialGrid.appendChild(card);
             });
         }
-    }
-
-    // Helper: Update Star Visuals (Used if we move logic here)
-    function updateStars(starsNodeList, value) {
-        starsNodeList.forEach(star => {
-            if (parseInt(star.getAttribute('data-value')) <= parseInt(value)) {
-                star.classList.add('selected');
-                star.textContent = '★';
-            } else {
-                star.classList.remove('selected');
-            }
-        });
     }
 });
 
