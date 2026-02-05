@@ -20,7 +20,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 // CONSTANTS & STATE
 // ---------------------------------------------------------
 // Admin Emails (Role Management)
-const ADMIN_EMAILS = ['bintang088213224163@gmail.com']; // Ganti dengan email admin sebenarnya
+const ADMIN_EMAILS = ['pbsn290704@gmail.com']; // Ganti dengan email admin sebenarnya
 
 // ---------------------------------------------------------
 // AUTHENTICATION LOGIC
