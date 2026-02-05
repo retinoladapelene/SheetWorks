@@ -501,77 +501,118 @@ document.addEventListener('DOMContentLoaded', () => {
 
         reviewForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            // ... (Save logic) ...
+
+            const user = firebase.auth().currentUser;
+            if (!user) {
+                showNotification("Akses Ditolak", "Anda harus login untuk mengirim review.", "error");
+                toggleLoginModal();
+                return;
+            }
+
             const name = document.getElementById('review-name').value;
             const club = document.getElementById('review-club').value || "Pengguna Baru";
-            const rating = ratingInput.value;
+            const rating = parseInt(ratingInput.value);
             const message = document.getElementById('review-message').value;
 
-            const newReview = {
-                name, club, rating, message,
-                date: new Date().toISOString()
-            };
-
-            const existingReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-            existingReviews.unshift(newReview);
-            localStorage.setItem('badmintonReviews', JSON.stringify(existingReviews));
-
+            // Simpan ke Firestore
             const formContent = document.getElementById('form-content');
             const successMsg = document.getElementById('success-msg');
-            if (formContent) formContent.style.display = 'none';
-            if (successMsg) successMsg.style.display = 'block';
 
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
+            firebase.firestore().collection('reviews').add({
+                name: name,
+                club: club,
+                rating: rating,
+                message: message,
+                photo: user.photoURL || null,
+                uid: user.uid,
+                email: user.email,
+                date: new Date().toISOString()
+            })
+                .then(() => {
+                    if (formContent) formContent.style.display = 'none';
+                    if (successMsg) successMsg.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                })
+                .catch((error) => {
+                    console.error("Error adding review: ", error);
+                    showNotification("Gagal", "Terjadi kesalahan: " + error.message, "error");
+                });
         });
     }
 
-    // Helper to render reviews (Extracted to allow re-render on auth)
+    // Helper to render reviews (Real-time from Firestore)
+    let reviewUnsubscribe = null;
+
     function renderReviews(isAdmin) {
         const testimonialGrid = document.getElementById('testimonial-grid');
         if (!testimonialGrid) return;
 
-        const storedReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-        testimonialGrid.innerHTML = '';
-
-        if (storedReviews.length === 0) {
-            testimonialGrid.innerHTML = '<p style="text-align:center; color:var(--text-slate); width:100%;">Belum ada ulasan.</p>';
-        } else {
-            storedReviews.forEach(review => {
-                const card = document.createElement('div');
-                card.className = 'testimonial-card';
-                card.style.position = 'relative';
-                card.innerHTML = `
-                    <div class="stars">${'⭐'.repeat(review.rating)}</div>
-                    <p class="quote">"${review.message}"</p>
-                    <div class="user-info">
-                        <div class="user-avatar" style="background:var(--neon-yellow); color:var(--primary-blue); font-weight:bold;">
-                            ${review.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                            <strong>${review.name}</strong><br>
-                            <small>${review.club}</small>
-                        </div>
-                    </div>
-                    ${isAdmin ? `<button class="delete-review-btn" style="position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer;" title="Hapus Review Ini">🗑️</button>` : ''}
-                `;
-
-                if (isAdmin) {
-                    const deleteBtn = card.querySelector('.delete-review-btn');
-                    deleteBtn.addEventListener('click', () => {
-                        showConfirm("Hapus review ini?", () => {
-                            const currentReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
-                            const updatedReviews = currentReviews.filter(r => r.date !== review.date);
-                            localStorage.setItem('badmintonReviews', JSON.stringify(updatedReviews));
-                            renderReviews(true); // Re-render
-                            showNotification("Terhapus", "Review berhasil dihapus.");
-                        });
-                    });
-                }
-                testimonialGrid.appendChild(card);
-            });
+        // Bersihkan listener lama jika ada
+        if (reviewUnsubscribe) {
+            reviewUnsubscribe();
+            reviewUnsubscribe = null;
         }
+
+        // Ambil data real-time
+        reviewUnsubscribe = firebase.firestore().collection('reviews')
+            .orderBy('date', 'desc')
+            .onSnapshot((snapshot) => {
+                testimonialGrid.innerHTML = '';
+
+                if (snapshot.empty) {
+                    testimonialGrid.innerHTML = '<p style="text-align:center; color:var(--text-slate); width:100%;">Belum ada ulasan.</p>';
+                    return;
+                }
+
+                snapshot.forEach((doc) => {
+                    const review = doc.data();
+                    const reviewId = doc.id;
+
+                    const card = document.createElement('div');
+                    card.className = 'testimonial-card';
+                    card.style.position = 'relative';
+
+                    const deleteBtn = isAdmin ?
+                        `<button class="delete-review-btn" data-id="${reviewId}" style="position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer;" title="Hapus Review Ini">🗑️</button>` : '';
+
+                    card.innerHTML = `
+                        <div class="stars">${'⭐'.repeat(review.rating)}</div>
+                        <p class="quote">"${review.message}"</p>
+                        <div class="user-info">
+                            <div class="user-avatar" style="background:var(--neon-yellow); color:var(--primary-blue); font-weight:bold;">
+                                ${review.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <strong>${review.name}</strong><br>
+                                <small>${review.club}</small>
+                            </div>
+                        </div>
+                        ${deleteBtn}
+                    `;
+
+                    if (isAdmin) {
+                        const btn = card.querySelector('.delete-review-btn');
+                        if (btn) {
+                            btn.addEventListener('click', (e) => {
+                                const id = e.target.getAttribute('data-id');
+                                showConfirm("Hapus review ini?", () => {
+                                    firebase.firestore().collection('reviews').doc(id).delete()
+                                        .then(() => showNotification("Terhapus", "Review berhasil dihapus."))
+                                        .catch((err) => showNotification("Error", "Gagal menghapus.", "error"));
+                                });
+                            });
+                        }
+                    }
+
+                    testimonialGrid.appendChild(card);
+                });
+            }, (error) => {
+                console.error("Error getting reviews:", error);
+                testimonialGrid.innerHTML = '<p style="text-align:center; color:red;">Gagal memuat ulasan.</p>';
+            });
     }
 });
 
