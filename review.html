@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Produk | PB ROXY Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            /* Navy Blue Deep */
+            --card-bg: #1e293b;
+            --neon-yellow: #dfff00;
+            --text-white: #f8fafc;
+            --text-slate: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header / Hero */
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 50px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        header h1 span {
+            color: var(--neon-yellow);
+        }
+
+        /* Main Container */
+        .main-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .testimonial-form-container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 550px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 0 3px rgba(223, 255, 0, 0.1);
+        }
+
+        /* Interactive Stars */
+        .rating-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px 0 25px 0;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+        }
+
+        .stars {
+            display: flex;
+            flex-direction: row-reverse;
+            /* For hover logic */
+            gap: 10px;
+        }
+
+        .star {
+            font-size: 2.5rem;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        /* Hover & Active Logic */
+        .star:hover,
+        .star:hover~.star,
+        .star.selected,
+        .star.selected~.star {
+            color: var(--neon-yellow);
+            transform: scale(1.1);
+            text-shadow: 0 0 15px rgba(223, 255, 0, 0.4);
+        }
+
+        #rating-desc {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--neon-yellow);
+            font-weight: 600;
+            height: 20px;
+        }
+
+        /* Upload Photo Placeholder */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--neon-yellow);
+            background: rgba(223, 255, 0, 0.05);
+        }
+
+        /* Buttons */
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: var(--neon-yellow);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(223, 255, 0, 0.3);
+            filter: brightness(1.1);
+        }
+
+        .btn-submit:disabled {
+            background: var(--text-slate);
+            cursor: not-allowed;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-slate);
+            font-size: 0.85rem;
+        }
+
+        /* Success Message Overlay */
+        #success-msg {
+            display: none;
+            text-align: center;
+        }
+
+        #success-msg .icon {
+            font-size: 4rem;
+            color: var(--neon-yellow);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="container">
+            <h1>Review <span>PB ROXY</span> Pro</h1>
+            <p style="color: var(--text-slate);">Bantu teman-teman admin lain dengan pengalaman Anda.</p>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="testimonial-form-container" id="form-card">
+            <div id="form-content">
+                <h2 style="text-align:center; margin-bottom:25px;">Bagikan Ulasan</h2>
+
+                <form id="review-page-form">
+                    <div class="form-group">
+                        <label>Nama Lengkap <span style="color:red">*</span></label>
+                        <input type="text" id="review-name" class="form-control" required
+                            placeholder="Contoh: Budi Santoso">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Asal Klub / Komunitas</label>
+                        <input type="text" id="review-club" class="form-control" placeholder="Contoh: PB Roxy Jakarta">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Berikan Rating <span style="color:red">*</span></label>
+                        <div class="rating-wrapper">
+                            <div class="stars" id="star-group">
+                                <span class="star" data-value="5">★</span>
+                                <span class="star" data-value="4">★</span>
+                                <span class="star" data-value="3">★</span>
+                                <span class="star" data-value="2">★</span>
+                                <span class="star" data-value="1">★</span>
+                            </div>
+                            <div id="rating-desc">Pilih Bintang</div>
+                        </div>
+                        <input type="hidden" id="review-rating" value="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ceritakan Pengalaman Anda <span style="color:red">*</span></label>
+                        <textarea id="review-message" class="form-control" rows="4" required
+                            placeholder="Apa yang paling membantu dari template ini?"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Unggah Foto (Opsional)</label>
+                        <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                            <p id="file-name">📸 Tambahkan Foto / Screenshot Dashboard</p>
+                            <input type="file" id="file-input" hidden accept="image/*">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submit-btn">Kirim Ulasan Sekarang</button>
+
+                    <a href="#" onclick="window.history.back()"
+                        style="display:block; text-align:center; margin-top:20px; color: var(--text-slate); text-decoration:none; font-size: 0.9rem;">←
+                        Kembali</a>
+                </form>
+            </div>
+
+            <div id="success-msg">
+                <div class="icon">✨</div>
+                <h2>Terima Kasih!</h2>
+                <p style="color: var(--text-slate); margin: 15px 0 25px;">Ulasan Anda sangat berarti untuk perkembangan
+                    komunitas badminton kita.</p>
+                <button class="btn-submit" onclick="location.reload()">Kirim Review Lain</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PB ROXY Digital System. Dibuat untuk komunitas yang lebih transparan.</p>
+    </footer>
+
+    <script>
+        const stars = document.querySelectorAll('.star');
+        const ratingInput = document.getElementById('review-rating');
+        const ratingDesc = document.getElementById('rating-desc');
+        const form = document.getElementById('review-page-form');
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisp = document.getElementById('file-name');
+
+        const labels = {
+            1: "Sangat Kecewa ☹️",
+            2: "Kurang Memuaskan 🙁",
+            3: "Bagus / Cukup 🙂",
+            4: "Sangat Puas! 😀",
+            5: "Luar Biasa, Recommended! 🔥"
+        };
+
+        // Star Interactivity
+        stars.forEach(star => {
+            star.addEventListener('click', function () {
+                const val = this.getAttribute('data-value');
+                ratingInput.value = val;
+
+                // Update visually
+                stars.forEach(s => s.classList.remove('selected'));
+                this.classList.add('selected');
+
+                ratingDesc.innerText = labels[val];
+            });
+
+            star.addEventListener('mouseover', function () {
+                const val = this.getAttribute('data-value');
+                ratingDesc.innerText = labels[val];
+            });
+
+            star.addEventListener('mouseout', function () {
+                const val = ratingInput.value;
+                ratingDesc.innerText = val > 0 ? labels[val] : "Pilih Bintang";
+            });
+        });
+
+        // File Input Feedback
+        fileInput.addEventListener('change', function () {
+            if (this.files.length > 0) {
+                fileNameDisp.innerText = "✅ " + this.files[0].name;
+                fileNameDisp.style.color = "var(--neon-yellow)";
+            }
+        });
+
+        // Form Submission
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            if (ratingInput.value == "0") {
+                alert("Harap berikan rating bintang terlebih dahulu.");
+                return;
+            }
+
+            const btn = document.getElementById('submit-btn');
+            btn.innerText = "Sedang Mengirim...";
+            btn.disabled = true;
+
+            // Save to LocalStorage
+            const name = document.getElementById('review-name').value;
+            const club = document.getElementById('review-club').value || "Pengguna Baru";
+            const rating = ratingInput.value;
+            const message = document.getElementById('review-message').value;
+
+            const newReview = {
+                name,
+                club,
+                rating,
+                message,
+                date: new Date().toISOString()
+            };
+
+            const existingReviews = JSON.parse(localStorage.getItem('badmintonReviews') || '[]');
+            existingReviews.unshift(newReview);
+            localStorage.setItem('badmintonReviews', JSON.stringify(existingReviews));
+
+            // Simulasi Proses Kirim & Redirect
+            setTimeout(() => {
+                document.getElementById('form-content').style.display = 'none';
+                document.getElementById('success-msg').style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Auto redirect after showing success for a moment
+                setTimeout(() => {
+                    window.location.href = 'badminton.html';
+                }, 2000);
+            }, 1000);
+        });
+    </script>
+</body>
+
+</html>
