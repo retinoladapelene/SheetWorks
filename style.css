@@ -510,21 +510,77 @@ footer {
 }
 
 /* =========================================
-   LOGIN & USER UI (ADDED)
+   LIQUID GLASS NAVIGATION (ADDED)
    ========================================= */
-.login-btn-container {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+.liquid-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     z-index: 1000;
+    background: rgba(10, 25, 47, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(204, 255, 0, 0.1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
 }
 
-.btn-login {
-    background-color: var(--primary-blue);
+/* Nav Links */
+.nav-links {
+    display: flex;
+    gap: 30px;
+    list-style: none;
+}
+
+.nav-links li a {
+    color: var(--text-white);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1rem;
+    transition: var(--transition);
+    position: relative;
+}
+
+.nav-links li a:hover,
+.nav-links li a.active {
     color: var(--neon-yellow);
-    border: 2px solid var(--neon-yellow);
-    padding: 10px 20px;
-    border-radius: 5px;
+}
+
+.nav-links li a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -5px;
+    left: 0;
+    background-color: var(--neon-yellow);
+    transition: width 0.3s ease;
+}
+
+.nav-links li a:hover::after {
+    width: 100%;
+}
+
+/* Move Auth Container to be flex item, reset absolute positioning */
+#auth-container {
+    position: static;
+    transform: none;
+}
+
+/* =========================================
+   LOGIN & USER UI (UPDATED)
+   ========================================= */
+.btn-login {
+    background-color: rgba(204, 255, 0, 0.1);
+    color: var(--neon-yellow);
+    border: 1px solid var(--neon-yellow);
+    padding: 8px 20px;
+    border-radius: 50px;
     font-weight: bold;
     cursor: pointer;
     text-decoration: none;
@@ -532,24 +588,31 @@ footer {
     display: flex;
     align-items: center;
     gap: 10px;
+    backdrop-filter: blur(5px);
 }
 
 .btn-login:hover {
     background-color: var(--neon-yellow);
     color: var(--primary-blue);
-    box-shadow: 0 0 15px rgba(204, 255, 0, 0.4);
+    box-shadow: 0 0 20px rgba(204, 255, 0, 0.6);
 }
 
 .user-profile-display {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     color: white;
-    background: rgba(10, 25, 47, 0.8);
-    padding: 5px 15px;
-    border-radius: 20px;
-    border: 1px solid var(--neon-yellow);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 15px;
+    border-radius: 30px;
+    border: 1px solid rgba(204, 255, 0, 0.3);
     cursor: pointer;
+    transition: var(--transition);
+}
+
+.user-profile-display:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--neon-yellow);
 }
 
 .user-profile-display img {
@@ -561,17 +624,23 @@ footer {
 
 /* Logout Dropdown/Button */
 .logout-btn {
-    background: #ff4757;
-    color: white;
-    border: none;
-    padding: 5px 10px;
+    background: transparent;
+    color: #ff4757;
+    border: 1px solid rgba(255, 71, 87, 0.5);
+    padding: 4px 8px;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 0.8rem;
-    margin-left: 10px;
+    font-size: 0.9rem;
+    margin-left: 5px;
+    transition: all 0.2s;
 }
 
-/* Modal Styles */
+.logout-btn:hover {
+    background: #ff4757;
+    color: white;
+}
+
+/* Modal Styles - Shared for Login & Logout */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -579,7 +648,8 @@ footer {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(10, 25, 47, 0.9);
+    backdrop-filter: blur(5px);
     z-index: 2000;
     justify-content: center;
     align-items: center;
@@ -593,21 +663,21 @@ footer {
 }
 
 .modal-card {
-    background: var(--primary-blue);
+    background: rgba(17, 34, 64, 0.95);
     padding: 40px;
-    border-radius: 15px;
-    border: 1px solid var(--neon-yellow);
+    border-radius: 20px;
+    border: 1px solid rgba(204, 255, 0, 0.2);
     text-align: center;
     max-width: 400px;
     width: 90%;
     position: relative;
-    box-shadow: 0 0 30px rgba(204, 255, 0, 0.15);
-    transform: translateY(20px);
-    transition: transform 0.3s ease;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .modal-overlay.active .modal-card {
-    transform: translateY(0);
+    transform: scale(1);
 }
 
 .modal-close {
@@ -616,9 +686,14 @@ footer {
     right: 15px;
     background: none;
     border: none;
-    color: var(--text-white);
+    color: var(--text-slate);
     font-size: 1.5rem;
     cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--neon-yellow);
 }
 
 .google-btn {
@@ -629,22 +704,73 @@ footer {
     background: white;
     color: #333;
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     border-radius: 50px;
     border: none;
     font-weight: bold;
     font-size: 1rem;
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 25px;
     transition: all 0.2s;
 }
 
 .google-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
 }
 
 .google-icon {
     width: 24px;
     height: 24px;
+}
+
+/* Custom Logout Modal Specifics */
+.logout-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.btn-confirm-logout {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-confirm-logout:hover {
+    transform: translateY(-2px);
+    background: #ff6b81;
+}
+
+.btn-cancel-logout {
+    background: transparent;
+    color: var(--text-white);
+    border: 1px solid var(--text-slate);
+    padding: 10px 25px;
+    border-radius: 50px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel-logout:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: white;
+}
+
+/* Mobile Nav Adjustments */
+@media (max-width: 768px) {
+    .liquid-nav {
+        padding: 15px 20px;
+    }
+    
+    .nav-links {
+        display: none;
+    }
 }

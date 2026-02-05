@@ -26,6 +26,10 @@ const ADMIN_EMAILS = ['pbsn290704@gmail.com']; // Ganti dengan email admin seben
 // AUTHENTICATION LOGIC
 // ---------------------------------------------------------
 
+// ---------------------------------------------------------
+// AUTHENTICATION LOGIC
+// ---------------------------------------------------------
+
 /**
  * Trigger Google Login Popup
  */
@@ -38,9 +42,8 @@ function loginGoogle() {
     firebase.auth().signInWithPopup(provider)
         .then((result) => {
             // Login Success
-            const user = result.user;
-            console.log("User logged in:", user.displayName);
-            toggleLoginModal(); // Close modal
+            console.log("User logged in:", result.user.displayName);
+            toggleLoginModal(); // Close modal if open
         })
         .catch((error) => {
             console.error("Login Error:", error);
@@ -49,19 +52,30 @@ function loginGoogle() {
 }
 
 /**
- * Logout User
+ * Custom Logout Flow
  */
 function logout() {
-    if (confirm("Ingin keluar dari akun?")) {
-        firebase.auth().signOut().then(() => {
-            console.log("User signed out");
-            // Clear specific session data if needed
-            sessionStorage.removeItem('userProfile');
-            location.reload(); // Refresh to reset UI
-        }).catch((error) => {
-            console.error("Logout Error:", error);
-        });
-    }
+    // Open the custom logout modal
+    const modal = document.getElementById('logout-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logout-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function confirmLogout() {
+    firebase.auth().signOut().then(() => {
+        console.log("User signed out");
+        sessionStorage.removeItem('userProfile');
+        closeLogoutModal();
+        // UI update will be handled by onAuthStateChanged
+        // Reloading might be needed if we want to clear all state cleanly
+        location.reload();
+    }).catch((error) => {
+        console.error("Logout Error:", error);
+    });
 }
 
 /**
@@ -71,6 +85,22 @@ function toggleLoginModal() {
     const modal = document.getElementById('login-modal');
     if (modal) {
         modal.classList.toggle('active');
+    }
+}
+
+/**
+ * Handle "Write Review" Click
+ * Checks if user is logged in before navigating
+ */
+function handleWriteReviewClick(e) {
+    e.preventDefault();
+    const user = firebase.auth().currentUser;
+    if (user) {
+        // Logged in: Go to review page
+        window.location.href = 'review.html';
+    } else {
+        // Not logged in: Show login modal
+        toggleLoginModal();
     }
 }
 
@@ -89,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // USER IS LOGGED IN
 
                 // 1. Update Auth UI (Header)
+                // Note: Now inside the Liquid Nav
                 if (authContainer) {
                     authContainer.innerHTML = `
                         <div class="user-profile-display" onclick="logout()" title="Klik untuk Logout">
@@ -120,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (reviewForm) {
                     const nameInput = document.getElementById('review-name');
                     if (nameInput) nameInput.value = user.displayName;
-                    // Optional: You could show the user photo somewhere on the form
                 }
 
             } else {
@@ -130,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (authContainer) {
                     authContainer.innerHTML = `
                         <button onclick="toggleLoginModal()" class="btn-login">
-                            🔒 Login Member
+                            🔒 Login
                         </button>
                     `;
                 }
@@ -147,8 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 4. Protected Route Check (review.html)
                 if (window.location.pathname.includes('review.html')) {
-                    alert("Anda harus login untuk menulis review!");
-                    window.location.href = 'badminton.html';
+                    // Redirect immediately if not logged in
+                    window.location.href = 'index.html';
+                    // We can't easily show a custom popup *after* redirect without URL params or Session Storage
+                    // But the requirement was "segera arahkan kembali ke index dengan notifikasi pop-up buatan sendiri"
+                    // Improved User Experience:
+                    // The 'handleWriteReviewClick' handles the button click on Index.
+                    // If they direct link, they get bounced.
                 }
             }
         });
